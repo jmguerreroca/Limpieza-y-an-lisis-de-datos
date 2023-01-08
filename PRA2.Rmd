@@ -1,0 +1,377 @@
+---
+title: 'Tipología del dato: PRA2'
+author: "Autores: Juan María Guerrero y José Ángel Rodríguez"
+date: "enero 2023"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Antes de comenzar, importamos las librerías dplry y ggplot2 entre otras que podremos necesitar más adelante:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+if(!require('Rmisc')) install.packages('Rmisc'); library('Rmisc')
+if(!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if(!require('xfun')) install.packages('xfun'); library('xfun')
+if (!require('tidyverse')) install.packages('tidyverse'); library('tidyverse')
+if(!require("corrplot")) install.packages("corrplot"); library("corrplot")
+if (!require('factoextra')) install.packages('factoextra'); library('factoextra')
+```
+
+
+
+****
+# Descripción del dataset
+****
+
+El dataset que hemos seleccionado es el propuesto por el propio enunciado de la asignatura, encontrándose este en el enlace https://www.kaggle.com/datasets/rashikrahmanpritom/heart-attack-analysis-prediction-dataset?resource=download de kaggle, y dentro de este podremos encontrar información relativa a las condiciones de salud de diversas personas que, en mayor o menor riesgo, podrían ser propensas a padecer un infarto debido a dichas condiciones. El objetivo de nuestro análisis será realizar un estudio de los datos para determinar la posible relación de ciertas variables referentes a la salud cardiovascular con el hecho de sufrir un infarto. Entre los posibles casos de análisis que nos ofrece el dataset, vamos a intentar dar respuesta a dos cuestiones principalmente:
+
+- ¿Hay evidencias de que la edad está relacionada con el riesgo de sufrir un infarto?
+
+- ¿Existe una mayor probabilidad de sufrir un infarto siendo hombre?
+
+El fin último de nuestro análisis será determinar cuáles son las variables más determinantes en este aspecto y si, en base a estas, seríamos capaces o no de predecir si alguien está en riesgo alto o no de sufrir un infarto.
+
+En primer lugar, vamos a cargar el fichero csv como se hacía en el apartado anterior y vamos a analizar su estructura:
+
+```{r}
+path = 'heart.csv'
+df <- read.csv(path)
+```
+
+Y vemos a continuación la estructura del mismo:
+
+Verificamos la estructura del juego de datos principal. Vemos el número de columnas que tenemos y ejemplos de los contenidos de las filas.
+
+```{r}
+# Reejecutar manualmente esta celda si da problemas.
+str(df)
+```
+
+```{r}
+summary(df)
+```
+
+Como podemos ver el dataset se compone de 303 registros, organizados en 14 columnas. Dentro de este, se aprecian 13 variables con valores enteros y una con valores decimales. Entre las variables con valores enteros podemos ver que 4 de ellas (sex, exng, fbs y output) serán binarias, mientras 5 de ellas (cp, restecg, slp, caa y thall) harán referencia a una característica *cualitativa* en función del valor que tomen.
+
+A continuación vamos a ver a qué hacen referencia las variables propuestas en el dataset. Como apoyo para esto se ha utilizado la fuente https://www.ijrte.org/wp-content/uploads/papers/v8i2S3/B11630782S319.pdf , ya que la información proporcionada en kaggle no estaba actualizada. Como contexto, cabe destacar también que el segmento ST hace referencia a la curva mostrada en el electrocardiograma cuando se contrae el ventrículo, pero no hay electricidad fluyendo a través de él.
+
+**VARIABLES A ESTUDIAR**
+
++ **age** Edad del paciente
++ **sex** Sexo del paciente
++ **exng** Angina inducida por ejercicio (1 = sí; 0 = no)
++ **caa** Número de vasos principales (0-4)
++ **cp** Tipo de dolor torácico:
+          - Valor 0: angina típica
+          - Valor 1: angina atípica
+          - Valor 2: dolor no anginoso
+          - Valor 3: asintomático
++ **trtbps** Presión arterial en reposo (en mm Hg)
++ **chol** Colesterol en mg/dl obtenido a través del sensor de IMC
++ **fbs** Glucemia en ayunas > 120 mg/dl (1 = verdadero; 0 = falso)
++ **restecg** Resultados electrocardiográficos en reposo
+          - Valor 0: normal
+          - Valor 1: con anomalía de la onda ST-T (inversiones de la onda T y/o elevación o depresión del ST de > 0,05 mV)
+          - Valor 2: hipertrofia ventricular izquierda probable o definida según los criterios de Estes
++ **thalachh** Frecuencia cardiaca máxima alcanzada
++ **oldpeak** Valor del último pico en la curva ST
++ **slp** Pendiente del pico del segmento ST durante el ejercicio (slope)
++ **thall** Trastorno en la sangre conocido como talasemia que hace que no produzcamos suficiente hemoglobina y toma valores:
+          - Valor 0: Heredado de ambos
+          - Valor 1: Heredado del padre
+          - Valor 2: Heredado de la madre
+          - Valor 3: No tiene
++ **output** 0 = Probabilidad baja de infarto, 1 = Probabilidad alta de infarto
+
+
+
+
+# Limpieza de datos
+
+## Existencia de valores nulos, ceros o elementos vacíos:
+
+Antes de continuar vamos a comprobar la existencia de 0s (que presuponemos existirán ya que el 0 se encuentra entre los valores aceptados para determinadas variables):
+
+```{r}
+apply(df, 2, function(x) sum(x == 0))
+```
+
+Como podemos ver, aquellas variables que hacen referencia a características tendrán el 0 como un valor válido. Para que nuestro dataframe tenga una aplicación más sencilla a la hora de usar en él un posible modelo predictivo, convertiremos las variables binarias en variables booleanas (TRUE y FALSE) y no eliminaremos las variables numéricas, si no que simplemente vamos a sumarle uno a las variables que cuenten con un 0 para eliminar la existencia de estos.
+
+```{r}
+df$fbs <- as.logical(df$fbs)
+df$exng <- as.logical(df$exng)
+```
+
+```{r}
+df$sex <- as.integer(df$sex + 1)
+df$cp <- as.integer(df$cp + 1)
+df$restecg <- as.integer(df$restecg + 1)
+df$thall <- as.integer(df$thall + 1)
+df$oldpeak <- as.integer(df$oldpeak + 1)
+df$slp <- as.integer(df$slp + 1)
+df$caa <- as.integer(df$caa + 1)
+```
+
+Comprobamos ahora que ya no existan ceros y las variables se hayan convertido de forma exitosa:
+
+```{r}
+apply(df, 2, function(x) sum(x == 0))
+```
+
+```{r}
+estructura = str(df)
+```
+
+Podemos concluir que los cambios se han llevado a cabo correctamente, ya que los valores que identifica como ceros serán los booleanos ya convertidos y la variable objetivo que se construye en base a una probabilidad por lo que tiene sentido mantenerla como 0 y 1.
+
+Acto seguido, veremos las estadísticas básicas y comprobaremos si cuenta con valores nulos y/o vacíos:
+
+```{r}
+colSums(is.na(df))
+```
+
+Como se puede apreciar, no aparecerán valores nulos, vamos a comprobar ahora si existen vacíos:
+
+```{r}
+colSums(df==" ")
+```
+
+```{r}
+colSums(df=="")
+```
+
+De nuevo, podemos ver que no existirán valores vacíos de forma que los datos a primera vista serán correctos.
+
+## Identificación y gestión de valores extremos
+
+Una vez visto esto, vamos ahora a analizar la existencia de valores extremos que se encuentren fuera de los rangos aceptables o que por su valor podamos identificar como erróneos por un posible problema de mala medición al tomar la muestra. 
+
+En primer lugar nos fijamos de nuevo en el resumen de las variables de la muestra:
+
+```{r}
+summary(df)
+```
+
+Con respecto a la variable decimal oldpeak parece encontrarse en un rango de valores correcto. Como podemos apreciar, todas las variables enteras que toman valores asociados a una característica cualitativa (cp, restecg, slp, caa y thall), y las binarias (sex, exng, fbs y output) tomarán valores dentro de los rangos esperados. De igual forma la variable edad toma valores entre 29 y 77 lo cual parece correcto. Para las variables trtbps, chol y thalachh utilizaremos un boxplot para determinar si existe algún valor que pueda ser un error de medición o que pueda corromper los datos y, de encontrarlo, lo eliminaremos del dataset:
+
+En primer lugar analizamos los valores de la presión:
+
+```{r}
+boxplot(df$trtbps)
+```
+
+```{r}
+out <- boxplot.stats(df$trtbps)$out
+out_ind <- which(df$trtbps %in% c(out))
+df[out_ind, ]$trtbps
+```
+
+Vemos que son valores muy elevados pero que podrían ser perfectamente reales, una tensión de 18 es perfectamente factible en personas con la tensión alta dado que los valores promedio se encuentran entorno a los 12 o 13, por lo que alcanzar incluso 20 podría ser algo real para personas en riesgo de sufrir un infarto. Por ello, en este caso no vamos a descartar estos valores para nuestro dataset.
+
+Vamos ahora a ver los valores del colesterol:
+
+```{r}
+boxplot(df$chol)
+```
+
+```{r}
+out <- boxplot.stats(df$chol)$out
+out_ind <- which(df$chol %in% c(out))
+df[out_ind, ]$chol
+```
+
+El colesterol puede considerarse como alto (lo cual indica un posible factor de riesgo para sufrir un infarto) a partir de 200, por ello valores por encima de los 400 o incluso los 560 como vemos que se llegan a alcanzar son valores extremadamente anómalos y que podrían llegar a corromper nuestra muestra pudiendo llegar a ser incluso errores de medición. Por ello vamos a eliminarlos de nuestro dataset:
+
+```{r}
+df <- df[-out_ind, ]
+```
+
+Finalmente analizamos la frecuencia cardiaca máxima:
+
+```{r}
+boxplot(df$thalachh)
+```
+
+```{r}
+out <- boxplot.stats(df$thalachh)$out
+out_ind <- which(df$thalachh %in% c(out))
+df[out_ind, ]$thalachh
+```
+
+El valor de esta suele calcularse restando nuestra edad a 220, por ello, este valor probablemente se trate de un error de medición por ser demasiado bajo pero en cualquier lugar vamos a visualizar la edad de esta persona para estimar el error en la muestra:
+
+```{r}
+t <- df[out_ind, ]$age
+t
+```
+
+Por lo que el valor esperado para la muestra debería ser:
+
+```{r}
+220-t
+```
+
+Como podemos ver, estará muy lejos del valor esperado siendo menos de la mitad, lo cual lo hace un valor extremadamente anómalo y muy posiblemente un error de medición. Ante esto, para garantizar la integridad y validez de los datos de nuestra muestra procedemos a eliminar este registro como en el caso anterior.
+
+```{r}
+df <- df[-out_ind, ]
+```
+
+Como añadido, vamos a agregar una nueva variable *riesgo* que corresponderá con una representación escrita de la información que nos da la variable *output*, siendo alto si esta vale 1 y bajo si esta vale 0:
+
+```{r}
+df$riesgo <- ifelse(df$output == 0, "bajo", "alto")
+df$sexo <- ifelse(df$sex == 1, "hombre", "mujer")
+```
+
+Visualizamos de nuevo la estructura final de nuestro dataset sobre el que llevaremos a continuación el proceso de análisis.
+
+```{r}
+str(df)
+```
+
+# Análisis de los datos
+
+## Selección de los grupos de datos a analizar
+
+Vamos antes de nada a comprobar cómo se relacionan las variables numéricas (a priori relacionadas con la posibilidad de sufrir un infarto), con la edad:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+p = c("trtbps","chol","thalachh") 
+df_p= df %>% select(all_of(p))
+histList2<- vector('list', ncol(df_p))
+for(i in seq_along(df_p)){
+  message(i)
+histList2[[i]]<-local({
+  i<-i
+  col <-log(df_p[[i]])
+  ggp<- ggplot(data = df_p, aes(x = df$age, y=col)) + 
+    geom_point(color = "yellow") + geom_smooth(method = lm,color = "firebrick") + 
+    theme_bw() + xlab("Edad") + ylab(names(df_p)[i])
+  })
+
+}
+multiplot(plotlist = histList2, cols = 4)
+```
+
+Obtenemos resultados acorde a lo esperado, viendo que a simple vista tendremos un aumento progresivo de la tensión y el colesterol acorde a nuestra edad, mientras que nuestra frecuencia cardiaca máxima disminuirá claramente con el paso de los años.
+
+
+
+Otros dos conjuntos interesantes a la hora de realizar una comparativa podrían ser el de hombres y mujeres, pudiendo realizar una comparativa entre ambos donde podemos ver para cada uno de ellos como se distribuyen los valores de tensión, colesterol y presión máxima y, finalmente, ver la relación de estos con la variable objetivo (riesgo real de sufrir un infarto).
+
+Vamos a analizar en primer lugar la comparativa entre los histogramas de los valores de la tensión:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+df_m <- df %>% filter(df['sex'] == 2)
+df_h <- df %>% filter(df['sex'] == 1)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+r = length(p)
+
+
+ggp_th <- ggplot(df_h, aes(x=trtbps)) + 
+  geom_histogram(bins = 30, fill = "blue", color = "black") + 
+  ggtitle("hombres")
+ggp_tm <- ggplot(df_m, aes(x=trtbps)) + 
+  geom_histogram(bins = 30, fill = "red", color = "black") + 
+  ggtitle("mujeres")
+multiplot(ggp_th, ggp_tm, coles = 2)
+```
+
+Comparamos a continuación los histogramas de los valores del colesterol:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+r = length(p)
+
+
+ggp_ch <- ggplot(df_h, aes(x=chol)) + 
+  geom_histogram(bins = 30, fill = "blue", color = "black") + 
+  ggtitle("hombres")
+ggp_cm <- ggplot(df_m, aes(x=chol)) + 
+  geom_histogram(bins = 30, fill = "red", color = "black") + 
+  ggtitle("mujeres")
+multiplot(ggp_ch, ggp_cm, coles = 2)
+```
+
+Finalmente comparamos los histogramas que representan la repartición de valores de la presión máxima:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+r = length(p)
+
+
+ggp_thh <- ggplot(df_m, aes(x=thalachh)) + 
+  geom_histogram(bins = 30, fill = "blue", color = "black") + 
+  ggtitle("mujeres")
+ggp_thm <- ggplot(df_h, aes(x=thalachh)) + 
+  geom_histogram(bins = 30, fill = "red", color = "black") + 
+  ggtitle("hombres")
+multiplot(ggp_thh, ggp_thm, coles = 2)
+```
+
+Como podemos observar, los valores para los hombres parecen ligeramente más desplazados a la derecha en cuestión de presión y, sobre todo, de colesterol; lo cual podría afectar negativamente. Mientras que para los valores de presión encontramos bastante igualdad.
+
+
+```{r}
+ah <- sum(df$output == 1 & df$sex == 1) / sum(df$output == 1) * 100
+am <- sum(df$output == 1 & df$sex == 2) / sum(df$output == 1) * 100
+
+g2 <- ggplot(data=df,aes(x=riesgo,fill=sexo))+geom_bar()+xlab("Riesgo de infarto")+ylab("SEXO")
+g2 + theme(axis.text.x = element_text(size=8,angle=40))
+
+print(sprintf("El %% de gente con riesgo alto de infarto que son mujeres será el %.4f %%",am))
+print(sprintf("Mientras que el %% de gente con riesgo alto de infarto que son hombres será el %.4f %%",ah))
+```
+
+Vamos ahora a visualizar esto mismo, pero analizando para hombres y mujeres cual es el riesgo de tener un infarto según nuestro dataframe:
+
+```{r}
+ah <- sum(df$output == 1 & df$sex == 1) / sum(df$sex == 1) * 100
+am <- sum(df$output == 1 & df$sex == 2) / sum(df$sex == 2) * 100
+
+g2 <- ggplot(data=df,aes(x=sexo,fill=riesgo))+geom_bar()+xlab("SEXO")+ylab("RIESGO")
+g2 + theme(axis.text.x = element_text(size=8,angle=40))
+
+print(sprintf("El %% de mujeres con riesgo alto de infarto será el %.4f %%",am))
+print(sprintf("Mientras que el %% de hombres con riesgo alto de infarto será el %.4f %%",ah))
+```
+
+Como podemos ver, dado que por lo observado hay más mujeres en el estudio que hombres, el total de casos de personas con riesgo alto de infarto será mayor en mujeres que en hombres, sin embargo, sin nos fijamos en el riesgo de contraer un infarto diferenciando por sexos, el riesgo para los hombres será del 75% frente al 45% en mujeres, lo cual supone un riesgo mucho mayor.
+
+## Comprobación de la normalidad y la homogeneidad de la varianza
+
+Vamos a continuación a analizar los subgrupos generados anteriormente para ver si son susceptibles o no de ser analizados mediante distintos métodos de contraste de hipótesis, regresiones etc
+
+
+
+
+
+
+# Contribuciones y firma
+
+| Contribuciones               |  Firma                                                       |
+|:-----------------------------|:-------------------------------------------------------------|
+| Investigación previa         |  Juan María Guerrero Carrasco, José Ángel Rodríguez Murillo  |
+| Redacción de las respuestas  |  Juan María Guerrero Carrasco, José Ángel Rodríguez Murillo  |
+| Desarrollo del código        |  Juan María Guerrero Carrasco, José Ángel Rodríguez Murillo  |
+| Participación en el vídeo    |  Juan María Guerrero Carrasco, José Ángel Rodríguez Murillo  |
+
+
