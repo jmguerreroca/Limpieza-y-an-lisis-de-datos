@@ -437,6 +437,7 @@ En este caso se aplicará un test estadístico sobre dos variables categóricas,
 Como hemos comprobado que no hay igualdad de varianza estadística entre la edad y el riesgo de infarto, vamos a aplicar un test de Wolcoxon y Mann-Whitney, que no es paramétrico.
 
 Las hipótesis serían:
+
 - H0: No hay diferencias significativas entre la edad y el riesgo de infarto
 - H1: Hay diferencias significativas en en riesgo de infarto en base a la edad
 
