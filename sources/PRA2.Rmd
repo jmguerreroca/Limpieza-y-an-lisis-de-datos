@@ -450,8 +450,10 @@ En este caso, el p-valor obtenido es menor al nivel de significancia por lo que 
 ### ¿Existe una mayor probabilidad de sufrir un infarto siendo hombre?
 
 En este apartado se realizan los tests necesarios para la comprobación de las siguientes hipótesis:
+
 - H0: No hay relación entre sexos a la hora de sufrir un infarto.
 - H1: Hay relación en la probabilidad de sufrir un infarto por ser hombre o mujer.
+
 Para ello se aplica un test de $\chi^2$.
 
 ```{r}
@@ -468,7 +470,8 @@ Antes de proceder a crear un modelo predictivo con el que poder estimar la proba
 Antes de calcular la matriz de correlaciones vamos a realizar visualizar de forma gráfica una estimación de la correlación entre variables mediante el método corrplot, donde incluiremos todas las variables:
 
 ```{r}
-numericas <- c("age", "sex", "cp", "trtbps", "chol", "restecg", "thalachh", "oldpeak", "slp", "caa", "thall", "output")
+numericas <- c("age", "sex", "cp", "trtbps", "chol", "restecg", "thalachh", 
+               "oldpeak", "slp", "caa", "thall", "output")
 df_num <- df[, numericas]
 ```
 
@@ -477,7 +480,7 @@ options(warn=-1)
 corrplot(cor(df_num))
 ```
 
-Como podemos apreciar, en nuestro dataframe existirán columnas fuertemente relacionadas. Nos interesan sobre todo los resultados de la última fila/ columna de la representación, donde podemos apreciar cómo se relacionan las variables con la probabilidad de sufrir un infarto. A simple vista podemos ver que las variables más relacionadas con este hecho a priori serán la frecuencia cardiaca máxima (thalachh), el tipo de dolor torácico (cp) o el slope (slp) con el hecho de sufrirlo; así como el número de vasos principales (caa), el valor del último pico de la curva ST (oldpeak), o incluso en menor medida el tener un trastorno en la sangre (thall) y la edad (age) con el hecho de no sufrirlo.
+Como podemos apreciar, en nuestro dataframe existirán columnas fuertemente relacionadas. Nos interesan sobre todo los resultados de la última fila/ columna de la representación, donde podemos apreciar cómo se relacionan las variables con la probabilidad de sufrir un infarto. A simple vista podemos ver que las variables más relacionadas con este hecho a priori serán la frecuencia cardiaca máxima (thalachh), el tipo de dolor torácico (cp) o el slope (slp) con el hecho de sufrirlo; así como el número de vasos principales (caa), el valor del último pico de la curva ST (oldpeak), o incluso en menor medida el tener un trastorno en la sangre (thall) y la edad (age).
 
 Para corroborar lo visto gráficamente, vamos a obtener la matriz de correlaciones entre estas variables y la probabilidad de sufrir un infarto (output). Para llevarlo a cabo utilizaremos el coeficiente de correlación de *Spearman*, ya que no todas las variables seguirán una distribución normal:
 
@@ -517,7 +520,9 @@ El criterio de información de Akaike que informa de la bondad del modelo es de 
 Vamos a comprobar si añadir variables cuantitativas, a priori relacionadas con la variable objetivo por lo visto anteriormente, pueden mejorar los resultados:
 
 ```{r}
-summary(glm(formula = output ~ trtbps + chol + restecg + sex + age + thalachh + oldpeak, family = "binomial", data = df))
+summary(glm(formula = output ~ trtbps + chol + restecg + sex + age + thalachh + oldpeak, 
+            family = "binomial", 
+            data = df))
 ```
 
 Los resultados son mejores, pero los p-valores indican que las variables ```oldpeak```, ```thalachh``` y ```sex``` no son determinantes en la predicción. Si los eliminamos:
@@ -538,11 +543,11 @@ $$
 
 El set de datos escogido es muy rico en cuanto a información a pesar de no contener un gran volumen de datos, sin embargo este es variado y representativo, por lo que hemos podido dar respuesta a las preguntas planteadas de forma eficiente.
 
-Con respecto al hecho de si *la edad influye o no en el riesgo de padecer un infarto*, podemos determinar que, efectivamente, este *SÍ* será un factor determinante, esto se ha confirmado mediante un test de contraste de hipótesis y, no solo eso, si no que además será un factor determinante a la hora de poder predecir con exactitud si una persona tiene o no un riesgo alto de sufrir un infarto.
+Con respecto al hecho de si ```la edad influye o no en el riesgo de padecer un infarto```, podemos determinar que, efectivamente, este ```SÍ``` será un factor determinante, esto se ha confirmado mediante un test de contraste de hipótesis y, no solo eso, si no que además será un factor determinante a la hora de poder predecir con exactitud si una persona tiene o no un riesgo alto de sufrir un infarto.
 
-Con respecto a si *siendo hombre es más probable sufrir un infarto*, de nuevo se ha confirmado en un test de contrastes unilateral que esto *SÍ* será así. Sin embargo, la variable sexo no será una de las más importantes a la hora de predecir el riesgo de infarto, pues como hemos podido observar en la matriz de correlaciones está se encontrará en un punto medio donde es importante, pero no será ni de las que mayor relación tengan con la variable objetivo ni de las que mayor significancia estadística tengan, llegando incluso a ser rechazada en nuestro modelo de regresión lineal en favor de otras.
+Con respecto a si ```siendo hombre es más probable sufrir un infarto```, de nuevo se ha confirmado en un test de contrastes unilateral que esto ```SÍ``` será así. Sin embargo, la variable sexo no será una de las más importantes a la hora de predecir el riesgo de infarto, pues como hemos podido observar en la matriz de correlaciones esta se encontrará en un punto medio donde es importante, pero no será ni de las que mayor relación tengan con la variable objetivo ni de las que mayor significancia estadística tengan, llegando incluso a ser rechazada en nuestro modelo de regresión logística en favor de otras.
 
-Finalmente, se ha podido desarrollar un *modelo de regresión logística eficiente*, con el que poder predecir el riesgo de sufrir un infarto, estimando los valores óptimos del predictor según el criterio de información de Akaine (AIC). Las variables más determinantes para esto han resultado ser la presión (trtbps), el colesterol (chol), los resultados electrocardiográficos en reposo (restecg) y, por último, la edad (age).
+Finalmente, se ha podido desarrollar un ```modelo de regresión logística eficiente```, con el que poder predecir el riesgo de sufrir un infarto, estimando los valores óptimos del predictor según el criterio de información de Akaine (AIC). Las variables más determinantes para esto han resultado ser la presión (trtbps), el colesterol (chol), los resultados electrocardiográficos en reposo (restecg) y, por último, la edad (age).
 
 
 
