@@ -7,3 +7,6 @@ En la carpeta *sources* podemos encontrar el código del análisis en el fichero
 
 Podemos visualizar, ejecutar y modificar el código utilizando RStudio, o si se prefiere podemos encontrar todos los resultados del código una vez finalizado el análisis en el fichero ```PRA2.pdf```, que se encuentra en el directorio principal de este repositorio.
 De igual forma, en el directorio principal del repositorio también encontraremos el fichero ```heart_clean.csv```, resultado del tratamiento de los datos una vez llevado a cabo el proceso de limpieza.
+
+
+- Autores: José Ángel Rodríguez Murillo (jrodriguezmurillo) y Juan María Guerrero Carrasco (jmguerreroca)
